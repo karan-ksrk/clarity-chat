@@ -1,0 +1,7 @@
+project_id = "nvjezjzzkyjmirostqwy"
+
+[functions.main-chat]
+verify_jwt = false
+
+[functions.side-chat]
+verify_jwt = false
