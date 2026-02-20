@@ -36,12 +36,12 @@ class Conversation(models.Model):
         ordering = ["-created_at"]
         constraints = [
             models.CheckConstraint(
-                name="valid_parent",
                 check=(
-                    models.Q(type="MAIN", parent__isnull=True)
-                    | models.Q(type="SIDE", parent__isnull=False)
+                    models.Q(type="MAIN", parent__isnull=True) |
+                    models.Q(type="SIDE", parent__isnull=False)
                 ),
-            )
+                name="valid_parent",
+            ),
         ]
 
     def __str__(self):
