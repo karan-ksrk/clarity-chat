@@ -41,7 +41,8 @@ def send_main_message(request, conversation_id):
     try:
         msg = services.send_main_message(conversation_id, ser.validated_data["message"])
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        import logging; logging.exception("send_main_message failed")
+        return Response({"error": "Failed to send message"}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response(MessageSerializer(msg).data)
 
@@ -52,7 +53,8 @@ def get_main_conversation(request, conversation_id):
     try:
         conv, messages = services.get_main_conversation(conversation_id)
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
+        import logging; logging.exception("get_main_conversation failed")
+        return Response({"error": "Conversation not found"}, status=status.HTTP_404_NOT_FOUND)
 
     return Response({
         "conversation": ConversationSerializer(conv).data,
@@ -79,7 +81,8 @@ def create_side_chat(request):
             user_level=d.get("user_level", "beginner"),
         )
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        import logging; logging.exception("create_side_chat failed")
+        return Response({"error": "Failed to create side chat"}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response(
         {
@@ -103,7 +106,8 @@ def send_side_message(request, side_conversation_id):
             side_conversation_id, ser.validated_data["message"]
         )
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        import logging; logging.exception("send_side_message failed")
+        return Response({"error": "Failed to send message"}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response(MessageSerializer(msg).data)
 
@@ -114,7 +118,8 @@ def close_side_chat(request, side_conversation_id):
     try:
         conv = services.close_side_chat(side_conversation_id)
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
+        import logging; logging.exception("close_side_chat failed")
+        return Response({"error": "Side conversation not found"}, status=status.HTTP_404_NOT_FOUND)
 
     return Response({"message": "Side conversation closed", "conversation_id": str(conv.id)})
 
@@ -125,7 +130,8 @@ def get_side_conversation(request, side_conversation_id):
     try:
         conv, messages = services.get_side_conversation(side_conversation_id)
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
+        import logging; logging.exception("get_side_conversation failed")
+        return Response({"error": "Side conversation not found"}, status=status.HTTP_404_NOT_FOUND)
 
     return Response({
         "conversation": ConversationSerializer(conv).data,

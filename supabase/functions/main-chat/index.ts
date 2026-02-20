@@ -70,7 +70,7 @@ serve(async (req) => {
       if (convError) {
         console.error('Error creating conversation:', convError);
         return new Response(
-          JSON.stringify({ error: convError.message }),
+          JSON.stringify({ error: 'Failed to create conversation' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -137,7 +137,7 @@ serve(async (req) => {
       if (msgError) {
         console.error('Error fetching messages:', msgError);
         return new Response(
-          JSON.stringify({ error: msgError.message }),
+          JSON.stringify({ error: 'Failed to retrieve messages' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -260,7 +260,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Main chat error:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: 'An unexpected error occurred' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
