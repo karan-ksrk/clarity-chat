@@ -1,4 +1,7 @@
-import { supabase } from "@/integrations/supabase/client";
+// API layer — points to Django backend when VITE_DJANGO_API_URL is set,
+// otherwise falls back to Supabase Edge Functions.
+
+const DJANGO_URL = import.meta.env.VITE_DJANGO_API_URL as string | undefined;
 
 export interface Conversation {
   id: string;
@@ -38,137 +41,124 @@ export interface CreateSideRequest {
   user_level?: string;
 }
 
-// Main Chat APIs
-export async function createMainConversation(mainTopic: string): Promise<{ conversation_id: string; main_topic: string }> {
-  const { data, error } = await supabase.functions.invoke('main-chat', {
-    body: { main_topic: mainTopic }
+// ── Helpers ──────────────────────────────────────────────────
+
+async function djangoFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${DJANGO_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
   });
-  
-  if (error) throw new Error(error.message);
-  return data;
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || 'Request failed');
+  }
+  return res.json();
+}
+
+async function supabaseFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const res = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1${path}`,
+    {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        ...(options.headers || {}),
+      },
+    }
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || 'Request failed');
+  }
+  return res.json();
+}
+
+// ── Main Chat APIs ──────────────────────────────────────────
+
+export async function createMainConversation(mainTopic: string): Promise<{ conversation_id: string; main_topic: string }> {
+  if (DJANGO_URL) {
+    return djangoFetch('/conversations/main', {
+      method: 'POST',
+      body: JSON.stringify({ main_topic: mainTopic }),
+    });
+  }
+  return supabaseFetch('/main-chat', {
+    method: 'POST',
+    body: JSON.stringify({ main_topic: mainTopic }),
+  });
 }
 
 export async function sendMainMessage(conversationId: string, message: string): Promise<{ message_id: string; content: string; role: string }> {
-  const { data, error } = await supabase.functions.invoke('main-chat', {
-    body: { conversation_id: conversationId, message },
-    headers: {
-      'x-custom-path': `/${conversationId}/message`
-    }
-  });
-  
-  // Edge function routing workaround - use fetch directly
-  const response = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/main-chat/${conversationId}/message`,
-    {
+  if (DJANGO_URL) {
+    return djangoFetch(`/chat/main/${conversationId}/message`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
       body: JSON.stringify({ message }),
-    }
-  );
-  
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to send message');
+    });
   }
-  
-  return response.json();
+  return supabaseFetch(`/main-chat/${conversationId}/message`, {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  });
 }
 
 export async function getMainConversation(conversationId: string): Promise<{ conversation: Conversation; messages: Message[] }> {
-  const response = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/main-chat/${conversationId}`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
-    }
-  );
-  
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to get conversation');
+  if (DJANGO_URL) {
+    return djangoFetch(`/chat/main/${conversationId}`);
   }
-  
-  return response.json();
+  return supabaseFetch(`/main-chat/${conversationId}`);
 }
 
-// Side Chat APIs
+// ── Side Chat APIs ──────────────────────────────────────────
+
 export async function createSideChat(request: CreateSideRequest): Promise<{
   side_conversation_id: string;
   main_topic: string;
   highlighted_text: string;
   explanation: string;
 }> {
-  const { data, error } = await supabase.functions.invoke('side-chat', {
-    body: request
+  if (DJANGO_URL) {
+    return djangoFetch('/chat/side', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+  return supabaseFetch('/side-chat', {
+    method: 'POST',
+    body: JSON.stringify(request),
   });
-  
-  if (error) throw new Error(error.message);
-  return data;
 }
 
 export async function sendSideMessage(sideConversationId: string, message: string): Promise<{ message_id: string; content: string; role: string }> {
-  const response = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/side-chat/${sideConversationId}/message`,
-    {
+  if (DJANGO_URL) {
+    return djangoFetch(`/chat/side/${sideConversationId}/message`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
       body: JSON.stringify({ message }),
-    }
-  );
-  
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to send message');
+    });
   }
-  
-  return response.json();
+  return supabaseFetch(`/side-chat/${sideConversationId}/message`, {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  });
 }
 
 export async function closeSideChat(sideConversationId: string): Promise<{ message: string; conversation_id: string }> {
-  const response = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/side-chat/${sideConversationId}/close`,
-    {
+  if (DJANGO_URL) {
+    return djangoFetch(`/chat/side/${sideConversationId}/close`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
-    }
-  );
-  
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to close side chat');
+    });
   }
-  
-  return response.json();
+  return supabaseFetch(`/side-chat/${sideConversationId}/close`, {
+    method: 'POST',
+  });
 }
 
 export async function getSideConversation(sideConversationId: string): Promise<{ conversation: Conversation; messages: Message[] }> {
-  const response = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/side-chat/${sideConversationId}`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
-    }
-  );
-  
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to get side conversation');
+  if (DJANGO_URL) {
+    return djangoFetch(`/chat/side/${sideConversationId}`);
   }
-  
-  return response.json();
+  return supabaseFetch(`/side-chat/${sideConversationId}`);
 }
