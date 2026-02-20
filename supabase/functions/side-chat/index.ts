@@ -108,7 +108,7 @@ serve(async (req) => {
       if (sideError) {
         console.error('Error creating side conversation:', sideError);
         return new Response(
-          JSON.stringify({ error: sideError.message }),
+          JSON.stringify({ error: 'Failed to create side conversation' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -245,7 +245,7 @@ serve(async (req) => {
       if (msgError) {
         console.error('Error fetching messages:', msgError);
         return new Response(
-          JSON.stringify({ error: msgError.message }),
+          JSON.stringify({ error: 'Failed to retrieve messages' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -393,7 +393,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Side chat error:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: 'An unexpected error occurred' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
