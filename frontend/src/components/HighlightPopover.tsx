@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { X, MessageCircleQuestion } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { X, MessageCircleQuestion } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface HighlightPopoverProps {
   highlightedText: string;
@@ -14,14 +14,14 @@ interface HighlightPopoverProps {
   onClose: () => void;
 }
 
-export function HighlightPopover({ 
-  highlightedText, 
-  context, 
-  position, 
-  onAsk, 
-  onClose 
+export function HighlightPopover({
+  highlightedText,
+  context,
+  position,
+  onAsk,
+  onClose,
 }: HighlightPopoverProps) {
-  const [question, setQuestion] = useState('');
+  const [question, setQuestion] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleQuickAsk = () => {
@@ -35,45 +35,64 @@ export function HighlightPopover({
       onAsk(question.trim());
     }
   };
+  const handleCustomAskClick = () => {
+    const defaultQuestion = `Explain "${highlightedText}" in more detail.`;
+    onAsk(defaultQuestion);
+  };
 
   return (
-    <div 
+    <div
+      onMouseDown={(e) => e.stopPropagation()}
       className={cn(
         "fixed z-50 bg-card border border-border rounded-xl shadow-lg p-4 animate-fade-in",
         "max-w-sm"
       )}
-      style={{ 
-        left: Math.min(position.x, window.innerWidth - 380), 
-        top: Math.min(position.y + 10, window.innerHeight - 200)
+      style={{
+        left: Math.min(position.x, window.innerWidth - 380),
+        top: Math.min(position.y + 10, window.innerHeight - 200),
       }}
     >
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm text-muted-foreground">Copy</span>
-        <Button variant="ghost" size="icon" onClick={onClose} className="h-6 w-6">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="h-6 w-6"
+        >
           <X className="w-4 h-4" />
         </Button>
       </div>
 
       <div className="mb-3">
         <Label className="text-sm text-muted-foreground">
-          Ask a question about "<span className="text-foreground font-medium">{highlightedText}</span>":
+          Ask a question about "
+          <span className="text-foreground font-medium">{highlightedText}</span>
+          ":
         </Label>
       </div>
 
       {!isExpanded ? (
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="flex-1"
             onClick={handleQuickAsk}
           >
-            What is {highlightedText.length > 15 ? highlightedText.slice(0, 15) + '...' : highlightedText}?
+            What is{" "}
+            {highlightedText.length > 15
+              ? highlightedText.slice(0, 15) + "..."
+              : highlightedText}
+            ?
           </Button>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="sm"
-            onClick={() => setIsExpanded(true)}
+            onClick={(e) => {
+              e.stopPropagation(); // 👈 extra safety
+              setIsExpanded(true);
+            }}
           >
             Custom
           </Button>
@@ -88,9 +107,9 @@ export function HighlightPopover({
             autoFocus
           />
           <div className="flex gap-2 justify-end">
-            <Button 
-              type="button" 
-              variant="ghost" 
+            <Button
+              type="button"
+              variant="ghost"
               size="sm"
               onClick={() => setIsExpanded(false)}
             >
